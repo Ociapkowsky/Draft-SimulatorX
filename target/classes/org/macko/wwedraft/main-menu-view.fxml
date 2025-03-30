@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.layout.VBox?>
+
+<VBox alignment="CENTER" spacing="15.0" style="-fx-background-color: transparent;" xmlns="http://javafx.com/javafx/23.0.1" xmlns:fx="http://javafx.com/fxml/1" fx:controller="org.macko.wwedraft.MainMenuViewController">
+   <children>
+      <Label fx:id="titleLabel2" text="%menu.label.title2">
+      </Label>
+      <Button fx:id="startDraftButton" mnemonicParsing="false" onAction="#handleStartDraftAction" text="%menu.button.startDraft" />
+
+      <Button fx:id="loadButton" mnemonicParsing="false" onAction="#handleLoadAction" text="%menu.button.load" />
+      <Button fx:id="addButton" mnemonicParsing="false" onAction="#handleAddAction" text="%menu.button.add" />
+      <Button fx:id="showPoolsButton" mnemonicParsing="false" onAction="#handleShowPoolsAction" text="%menu.button.showPools" />
+      <Button fx:id="showResultsButton" mnemonicParsing="false" onAction="#handleShowResultsAction" text="%menu.button.showResults" />
+      <Button fx:id="exportButton" mnemonicParsing="false" onAction="#handleExportAction" text="%menu.button.export" />
+   </children>
+   <padding>
+      <Insets bottom="20.0" left="20.0" right="20.0" top="20.0" />
+   </padding>
+</VBox>

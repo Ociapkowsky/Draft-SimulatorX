@@ -1,0 +1,131 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <groupId>com.example.wwedraft</groupId>
+  <artifactId>wwe-draft</artifactId>
+  <version>1.0-SNAPSHOT</version>
+  <packaging>jar</packaging>
+
+  <name>wwe-draft</name>
+
+  <properties>
+    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    <maven.compiler.release>21</maven.compiler.release>
+    <javafx.version>21</javafx.version>
+    <javafx.maven.plugin.version>0.0.8</javafx.maven.plugin.version>
+    <poi.version>5.2.5</poi.version>
+  </properties>
+
+  <dependencies>
+    <dependency> <groupId>org.openjfx</groupId> <artifactId>javafx-controls</artifactId> <version>${javafx.version}</version> </dependency>
+    <dependency> <groupId>org.openjfx</groupId> <artifactId>javafx-fxml</artifactId> <version>${javafx.version}</version> </dependency>
+    <dependency> <groupId>org.openjfx</groupId> <artifactId>javafx-graphics</artifactId> <version>${javafx.version}</version> <classifier>win</classifier> </dependency>
+    <dependency> <groupId>org.apache.poi</groupId> <artifactId>poi</artifactId> <version>${poi.version}</version> </dependency>
+    <dependency> <groupId>org.apache.poi</groupId> <artifactId>poi-ooxml</artifactId> <version>${poi.version}</version> </dependency>
+  </dependencies>
+
+  <build>
+    <plugins>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-compiler-plugin</artifactId>
+        <version>3.11.0</version>
+        <configuration> <release>${maven.compiler.release}</release> </configuration>
+      </plugin>
+
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-jar-plugin</artifactId>
+        <version>3.4.1</version>
+        <configuration>
+          <archive>
+            <manifest>
+              <addClasspath>true</addClasspath>
+              <mainClass>org.macko.wwedraft.Main</mainClass>
+            </manifest>
+          </archive>
+        </configuration>
+      </plugin>
+
+      <plugin>
+        <groupId>org.openjfx</groupId>
+        <artifactId>javafx-maven-plugin</artifactId>
+        <version>${javafx.maven.plugin.version}</version>
+        <configuration>
+          <mainClass>org.macko.wwedraft.Main</mainClass>
+          <launcher>app</launcher>
+        </configuration>
+      </plugin>
+
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-dependency-plugin</artifactId>
+        <version>3.6.1</version>
+        <executions>
+          <execution>
+            <id>copy-dependencies</id>
+            <phase>prepare-package</phase>
+            <goals><goal>copy-dependencies</goal></goals>
+            <configuration>
+              <outputDirectory>${project.build.directory}/dependency</outputDirectory>
+              <includeScope>runtime</includeScope>
+              <excludeClassifiers>linux,mac</excludeClassifiers>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+
+      <plugin>
+        <groupId>org.codehaus.mojo</groupId>
+        <artifactId>exec-maven-plugin</artifactId>
+        <version>3.1.1</version>
+        <executions>
+          <execution>
+            <id>jpackage</id>
+            <phase>package</phase>
+            <goals><goal>exec</goal></goals>
+            <configuration>
+              <executable>${java.home}/bin/jpackage</executable>
+              <arguments>
+                <argument>--type</argument>
+                <argument>exe</argument>
+                <argument>--name</argument>
+                <argument>DraftSimulatorX</argument>
+                <argument>--app-version</argument>
+                <argument>1.0.0</argument>
+                <argument>--vendor</argument>
+                <argument>Ociapkowsky</argument>
+                <argument>--dest</argument>
+                <argument>${project.build.directory}/jpackage_output</argument>
+                <argument>--input</argument>
+                <argument>${project.build.directory}</argument>
+                <argument>--main-jar</argument>
+                <argument>${project.build.finalName}.jar</argument>
+                <argument>--main-class</argument>
+                <argument>org.macko.wwedraft.Main</argument>
+                <argument>--module-path</argument>
+                <argument>${project.build.directory}/dependency</argument>
+                <argument>--add-modules</argument>
+                <argument>javafx.controls,javafx.fxml</argument>
+                <argument>--icon</argument>
+                <argument>C:\Users\macko\wwe-draft\src\main\resources\images\appicon.ico</argument>
+                <argument>--win-shortcut</argument>
+                <argument>--win-dir-chooser</argument>
+                <argument>--verbose</argument>
+              </arguments>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-surefire-plugin</artifactId>
+        <version>3.2.5</version>
+      </plugin>
+    </plugins>
+  </build>
+</project>

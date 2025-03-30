@@ -1,0 +1,86 @@
+/* Plik: src/main/resources/style.css */
+
+
+/* Styl dla głównych kontenerów widoków FXML, aby tło było przezroczyste */
+.transparent-background {
+    -fx-background-color: transparent;
+}
+
+/* --- PODSTAWOWE STYLE KONTROLEK --- */
+
+/* Etykiety */
+.label {
+    -fx-font-size: 12px; /* Domyślny rozmiar dla zwykłych etykiet */
+    -fx-text-fill: #333333; /* Ciemnoszary tekst */
+}
+#titleLabel {
+    -fx-font-family: "Rawhide Raw 2016"; /* Upewnij się, że czcionka jest dostępna/załadowana! */
+    -fx-font-size: 41px !important; /* !important może pomóc, ale lepiej unikać, jeśli to możliwe */
+    /* lub po prostu bez !important, jeśli nie ma konfliktów */
+    /* -fx-font-size: 41px; */
+}
+#titleLabel2 {
+    -fx-font-family: "Rawhide Raw 2016"; /* Upewnij się, że czcionka jest dostępna/załadowana! */
+    -fx-font-size: 34px !important; /* !important może pomóc, ale lepiej unikać, jeśli to możliwe */
+    /* lub po prostu bez !important, jeśli nie ma konfliktów */
+    /* -fx-font-size: 41px; */
+}
+/* Przyciski */
+.button {
+    -fx-background-color: #DC3545; /* Czerwony */
+    -fx-text-fill: white; /* Biały tekst */
+    -fx-font-size: 14px;
+    -fx-padding: 8px 15px; /* Mniejszy padding */
+    -fx-background-radius: 5px; /* Zaokrąglone rogi */
+    -fx-cursor: hand; /* Kursor łapki */
+}
+
+.button:hover {
+    -fx-background-color: #C82333; /* Ciemniejszy czerwony po najechaniu */
+}
+
+.button:disabled {
+    -fx-opacity: 0.6; /* Lekko przezroczysty, gdy nieaktywny */
+    -fx-cursor: default; /* Normalny kursor */
+}
+
+
+/* Listy */
+.list-view {
+    -fx-border-color: #cccccc; /* Jasnoszare obramowanie */
+    -fx-border-width: 1px;
+}
+
+/* Komórki listy */
+.list-cell {
+    -fx-padding: 5px;
+}
+
+/* Komórki listy po najechaniu lub zaznaczeniu */
+.list-cell:filled:hover {
+    -fx-background-color: #e0e0e0; /* Jasnoszare tło po najechaniu */
+}
+
+.list-cell:filled:selected {
+    -fx-background-color: #007bff; /* Niebieskie tło dla zaznaczonego */
+    -fx-text-fill: white; /* Biały tekst dla zaznaczonego */
+}
+
+/* ComboBox w oknie dialogowym */
+.choice-dialog .combo-box .list-cell {
+    -fx-padding: 5px 10px; /* Dostosuj padding w ComboBox */
+}
+
+/* Etykiety nagłówkowe (np. nazw kategorii) */
+.label-header {
+    -fx-font-weight: bold;
+    -fx-font-size: 14px;
+    -fx-padding: 5px 0;
+}
+
+/* Etykieta tytułowa w menu głównym */
+#titleLabel {
+    -fx-font-size: 28px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #333;
+}

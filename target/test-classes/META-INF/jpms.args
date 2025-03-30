@@ -1,0 +1,4 @@
+--patch-module
+org.macko.wwedraft=_
+--add-reads
+org.macko.wwedraft=ALL-UNNAMED
