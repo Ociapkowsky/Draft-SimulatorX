@@ -212,7 +212,58 @@ public class Main extends Application {
         // --- KONIEC KODU ŁADOWANIA CZCIONKI ---
         this.primaryStage = primaryStage;
         this.primaryStage.setTitle("Draft Simulator by Ociapkowsky");
+        // --- POCZĄTEK: Kod tworzenia folderu na obrazki (z tłumaczeniami) ---
+        try {
+            String userDocuments = System.getProperty("user.home") + File.separator + "Documents";
+            String imageFolderName = "WWE_Draft_Images";
+            File imageDir = new File(userDocuments, imageFolderName);
 
+            if (!imageDir.exists()) {
+                System.out.println("Folder na obrazki nie istnieje, próba utworzenia: " + imageDir.getAbsolutePath());
+                boolean created = imageDir.mkdirs();
+                if (created) {
+                    System.out.println("Utworzono folder na obrazki: " + imageDir.getAbsolutePath());
+                    // --- ZMIANA TUTAJ ---
+                    if (currentBundle != null) {
+                        showAlert(Alert.AlertType.INFORMATION,
+                                currentBundle.getString("alert.imgfolder.created.title"), // Tytuł bez zmian
+                                // Nowa treść wyjaśniająca cel folderu
+                                MessageFormat.format("Utworzono folder:\n{0}\n\nMożesz umieścić w nim własne obrazki (.png/.jpg), aby nadpisać domyślne lub dodać nowe. Nazwy plików muszą zgadzać się z tymi w Excelu.", imageDir.getAbsolutePath()));
+                        // Możesz stworzyć nowy klucz w .properties dla tej treści
+                    } else {
+                        showAlert(Alert.AlertType.INFORMATION, "Folder Obrazków", "Utworzono folder na obrazki w Dokumentach. Możesz tam dodać własne pliki."); // Fallback
+                    }
+                } else {
+                    System.err.println("BŁĄD: Nie można utworzyć folderu na obrazki: " + imageDir.getAbsolutePath());
+                    // Alert błędu (z tłumaczeniem)
+                    if (currentBundle != null) {
+                        showAlert(Alert.AlertType.WARNING,
+                                currentBundle.getString("alert.imgfolder.error.title"),
+                                MessageFormat.format(currentBundle.getString("alert.imgfolder.error.content"), imageDir.getAbsolutePath()));
+                    } else {
+                        showAlert(Alert.AlertType.WARNING, "Błąd", "Nie udało się utworzyć folderu..."); // Fallback
+                    }
+                }
+            } else {
+                System.out.println("Folder na obrazki już istnieje: " + imageDir.getAbsolutePath());
+            }
+        } catch (SecurityException se) {
+            System.err.println("Błąd uprawnień przy tworzeniu folderu: " + se.getMessage());
+            // Alert błędu uprawnień (z tłumaczeniem)
+            if (currentBundle != null) {
+                showAlert(Alert.AlertType.ERROR,
+                        currentBundle.getString("alert.imgfolder.permission.title"),
+                        currentBundle.getString("alert.imgfolder.permission.content"));
+            } else {
+                showAlert(Alert.AlertType.ERROR, "Błąd Uprawnień", "Brak uprawnień..."); // Fallback
+            }
+        } catch (Exception e) {
+            System.err.println("Nieoczekiwany błąd przy tworzeniu folderu: " + e.getMessage());
+            e.printStackTrace();
+            // Można dodać ogólny alert błędu
+            showAlert(Alert.AlertType.ERROR, "Błąd", "Nieoczekiwany błąd przy tworzeniu folderu: " + e.getMessage());
+        }
+        // --- KONIEC: Kod tworzenia folderu na obrazki ---
         updateCategoryLists(); // Inicjalizacja list kategorii
         for (Brand brand : allBrands) {
             brandRosters.put(brand, FXCollections.observableArrayList()); // Inicjalizacja mapy rosterów
@@ -1501,62 +1552,87 @@ public class Main extends Application {
         return listView;
     }
 
-    // Helper do ładowania obrazka (POPRAWIONY - ładuje z zasobów/classpath)
+    /**
+     * Ładuje obrazek dla wrestlera. Najpierw szuka w folderze zewnętrznym
+     * (Dokumenty/WWE_Draft_Images), a jeśli nie znajdzie, szuka w zasobach wewnętrznych.
+     * @param wrestler Obiekt Wrestler.
+     * @return Obiekt Image lub null, jeśli plik nie istnieje nigdzie lub wystąpił błąd.
+     */
     private Image loadImageForWrestler(Wrestler wrestler) {
-        // Sprawdź, czy wrestler i nazwa pliku istnieją i nie są puste
-        if (wrestler == null || wrestler.getImageFileName() == null || wrestler.getImageFileName().trim().isEmpty()) {
-            return null; // Zwróć null, jeśli brak nazwy pliku
-        }
+        if (wrestler == null || wrestler.getImageFileName() == null || wrestler.getImageFileName().trim().isEmpty()) { return null; }
         String fileName = wrestler.getImageFileName().trim();
-        // Ścieżka do zasobu WEWNĄTRZ classpath (zaczynając od / dla roota resources)
-        // Zakładając, że obrazki są w src/main/resources/images
-        String resourcePath = "/images/" + fileName;
 
-        // Użyj try-with-resources do automatycznego zamknięcia InputStream
-        try (java.io.InputStream imageStream = getClass().getResourceAsStream(resourcePath)) { // Dodaj import java.io.InputStream, jeśli go brakuje
+        // --- Ścieżka do folderu zewnętrznego ---
+        String userDocuments = System.getProperty("user.home") + File.separator + "Documents";
+        String imageFolderName = "WWE_Draft_Images";
+        File externalImageFile = new File(userDocuments + File.separator + imageFolderName, fileName);
+
+        // 1. Spróbuj załadować z folderu zewnętrznego
+        if (externalImageFile.exists() && externalImageFile.isFile()) {
+            try (FileInputStream inputStream = new FileInputStream(externalImageFile)) {
+                System.out.println("Ładowanie obrazka (W) z pliku zewn.: " + externalImageFile.getAbsolutePath());
+                return new Image(inputStream, 50, 50, true, true);
+            } catch (IOException e) {
+                System.err.println("Błąd odczytu zewn. obrazka '" + fileName + "': " + e.getMessage());
+                // Nie zwracaj null jeszcze, spróbuj z zasobów wewnętrznych
+            } catch (Exception e) { // Złap też inne możliwe błędy Image
+                System.err.println("Inny błąd ładowania zewn. obrazka '" + fileName + "': " + e.getMessage());
+            }
+        }
+
+        // 2. Jeśli nie znaleziono/błąd przy zewnętrznym, spróbuj załadować z zasobów wewnętrznych
+        String resourcePath = "/images/" + fileName;
+        try (InputStream imageStream = getClass().getResourceAsStream(resourcePath)) {
             if (imageStream != null) {
-                // Jeśli strumień został znaleziony (zasób istnieje)
-                System.out.println("Ładowanie obrazka z zasobów: " + resourcePath);
-                // Załaduj obrazek bezpośrednio ze strumienia, ustawiając preferowany rozmiar
-                // Ustawiamy 0,0 aby załadować w oryginalnym rozmiarze, ImageView zajmie się skalowaniem LUB ustaw konkretny jak wcześniej
-                // return new Image(imageStream); // W oryginalnym rozmiarze
-                return new Image(imageStream, 50, 50, true, true); // Z rozmiarem, zachowaniem proporcji i wygładzaniem
+                System.out.println("Ładowanie obrazka (W) z zasobów wewn.: " + resourcePath);
+                return new Image(imageStream, 50, 50, true, true);
             } else {
-                // Zasób (plik obrazka) nie został znaleziony w classpath
-                System.err.println("Nie znaleziono zasobu obrazka w classpath: " + resourcePath);
-                return null; // Zwróć null
+                System.err.println("Nie znaleziono obrazka (W) ani zewn. ani wewn.: " + fileName);
+                return null; // Nie znaleziono nigdzie
             }
         } catch (Exception e) {
-            // Złap wszelkie wyjątki podczas ładowania zasobu lub tworzenia obrazka
-            System.err.println("Błąd ładowania obrazka z zasobów '" + resourcePath + "': " + e.getMessage());
-            // e.printStackTrace(); // Odkomentuj dla pełnego śladu stosu podczas debugowania
-            return null; // Zwróć null w przypadku błędu
+            System.err.println("Błąd ładowania obrazka (W) z zasobów wewn. '" + resourcePath + "': " + e.getMessage());
+            return null; // Błąd ładowania z zasobów
         }
     }
     /**
-     * Ładuje obrazek dla danego brandu z zasobów classpath.
+     * Ładuje logo dla brandu. Najpierw szuka w folderze zewnętrznym, potem w zasobach.
      * @param brand Obiekt Brand.
-     * @return Obiekt Image lub null, jeśli plik nie istnieje lub wystąpił błąd.
+     * @return Obiekt Image lub null.
      */
     private Image loadImageForBrand(Brand brand) {
-        if (brand == null || brand.getLogoFileName() == null || brand.getLogoFileName().trim().isEmpty()) {
-            return null; // Brak nazwy pliku
-        }
+        if (brand == null || brand.getLogoFileName() == null || brand.getLogoFileName().trim().isEmpty()) { return null; }
         String fileName = brand.getLogoFileName().trim();
-        String resourcePath = "/images/" + fileName; // Ścieżka w resources/images
 
+        // Ścieżka do folderu zewnętrznego
+        String userDocuments = System.getProperty("user.home") + File.separator + "Documents";
+        String imageFolderName = "WWE_Draft_Images";
+        File externalImageFile = new File(userDocuments + File.separator + imageFolderName, fileName);
+
+        // 1. Spróbuj załadować z folderu zewnętrznego
+        if (externalImageFile.exists() && externalImageFile.isFile()) {
+            try (FileInputStream inputStream = new FileInputStream(externalImageFile)) {
+                System.out.println("Ładowanie logo (B) z pliku zewn.: " + externalImageFile.getAbsolutePath());
+                return new Image(inputStream, 60, 30, true, true); // Dostosuj rozmiar loga
+            } catch (IOException e) {
+                System.err.println("Błąd odczytu zewn. logo '" + fileName + "': " + e.getMessage());
+            } catch (Exception e) {
+                System.err.println("Inny błąd ładowania zewn. logo '" + fileName + "': " + e.getMessage());
+            }
+        }
+
+        // 2. Spróbuj załadować z zasobów wewnętrznych
+        String resourcePath = "/images/" + fileName;
         try (InputStream imageStream = getClass().getResourceAsStream(resourcePath)) {
             if (imageStream != null) {
-                // Logowanie tylko raz na początku może wystarczyć, żeby nie spamować
-                // System.out.println("Ładowanie logo brandu z zasobów: " + resourcePath);
-                // Ustaw rozmiar np. dla nagłówka siatki draftu
-                return new Image(imageStream, 60, 30, true, true); // Mniejsza wysokość, większa szerokość? Dostosuj!
+                System.out.println("Ładowanie logo (B) z zasobów wewn.: " + resourcePath);
+                return new Image(imageStream, 60, 30, true, true); // Dostosuj rozmiar loga
             } else {
-                System.err.println("Nie znaleziono zasobu logo brandu w classpath: " + resourcePath);
+                System.err.println("Nie znaleziono logo (B) ani zewn. ani wewn.: " + fileName);
                 return null;
             }
         } catch (Exception e) {
-            System.err.println("Błąd ładowania logo brandu '" + fileName + "': " + e.getMessage());
+            System.err.println("Błąd ładowania logo (B) z zasobów wewn. '" + resourcePath + "': " + e.getMessage());
             return null;
         }
     }
