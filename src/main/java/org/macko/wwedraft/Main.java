@@ -174,40 +174,46 @@ public class Main extends Application {
         String[] supportedLangs = {"pl", "en"}; // Wypisujemy wspierane języki (Language)
 
 
-        // Tworzymy zmienną do przechowywania informacji czy obecny język jest przez nas wspierany i domyślne ustawiamy na "false" czyli użytkownik ma inny język
-        boolean isSupported = false;
-        // Pętla, czyli sprawdza w liście "supportedLangs" i trzyma je w zmiennej Lang
-        for (String lang : supportedLangs) {
-            if (lang.equals(currentLanguage)) {
-                isSupported = true;
-                break;
-            }
-        }
-        //  !isSupported = isSupported == false, jeżeli jest inny to ustawi na en_US
-        if (!isSupported) {
-            currentLocale = new Locale("en", "US");
+        // --- POCZĄTEK POPRAWIONEGO ŁADOWANIA ZASOBÓW (BEZ Utf8Control) ---
+        Locale systemLocale = Locale.getDefault();
+        System.out.println("System default locale: " + systemLocale);
 
-        }
+        Locale localePL = new Locale("pl", "PL");
+        Locale localeEN_US = new Locale("en", "US");
 
-        System.out.println(currentLanguage);
-        // Ścieżka do bazowej nazwy plików messages (bez _pl_PL itp.)
+        if (systemLocale.getLanguage().equals(localePL.getLanguage())) {
+            currentLocale = localePL;
+        } else {
+            currentLocale = localeEN_US; // Domyślnie EN_US
+        }
+        System.out.println("Locale wybrane dla aplikacji: " + currentLocale);
+
         String bundlePath = "org.macko.wwedraft.messages";
         try {
-            currentBundle = ResourceBundle.getBundle(bundlePath, currentLocale);
-            System.out.println("Załadowano ResourceBundle dla locale: " + currentLocale);
+            // Wywołanie BEZ Utf8Control - Java 9+ domyślnie użyje UTF-8
+            currentBundle = ResourceBundle.getBundle(bundlePath, currentLocale); // <-- USUNIĘTO new Utf8Control()
+            System.out.println("Załadowano ResourceBundle dla: " + currentLocale);
         } catch (MissingResourceException e) {
-            System.err.println("Nie znaleziono plików ResourceBundle: " + bundlePath + " dla " + currentLocale + ". Używam domyślnego.");
-            try {
-                currentLocale = Locale.getDefault(); // Spróbuj domyślnego systemowego
-                currentBundle = ResourceBundle.getBundle(bundlePath, currentLocale);
+            System.err.println("Nie znaleziono Bundle dla " + currentLocale + ". Próbuję ostatecznego fallbacku.");
+            // Spróbuj załadować domyślny (np. messages.properties lub messages_pl_PL)
+            try{
+                currentBundle = ResourceBundle.getBundle(bundlePath); // <-- Bez locale i bez Control
+                currentLocale = currentBundle.getLocale(); // Zobaczmy, co załadował
+                System.out.println("Załadowano domyślny ResourceBundle dla: " + currentLocale);
+                // Upewnij się, że fallback jest akceptowalny (np. angielski lub polski)
+                if (!currentLocale.getLanguage().equals(localeEN_US.getLanguage()) && !currentLocale.getLanguage().equals(localePL.getLanguage())) {
+                    // Jeśli domyślny to jeszcze coś innego, to jest problem
+                    throw new MissingResourceException("Domyślny bundle nie jest PL ani EN", bundlePath, "");
+                }
             } catch (MissingResourceException e2) {
-                System.err.println("Nie znaleziono domyślnych plików ResourceBundle! Aplikacja może nie wyświetlać tekstów.");
-                // W ostateczności utwórz pusty, aby uniknąć NullPointerException
+                // Ostateczny fallback - pusty bundle
+                System.err.println("Nie znaleziono żadnych plików ResourceBundle! Błąd: " + e2.getMessage());
+                currentLocale = Locale.ROOT;
                 currentBundle = new ListResourceBundle() { @Override protected Object[][] getContents() { return new Object[0][]; } };
                 showAlert(Alert.AlertType.ERROR, "Błąd Krytyczny Zasobów", "Nie znaleziono plików tłumaczeń!");
             }
         }
-        // --- KONIEC ŁADOWANIA ZASOBÓW ---
+        // --- KONIEC POPRAWIONEGO ŁADOWANIA ZASOBÓW ---
 
         // --- KONIEC KODU ŁADOWANIA CZCIONKI ---
         this.primaryStage = primaryStage;
@@ -1874,41 +1880,4 @@ public class Main extends Application {
     public static void main(String[] args) {
         launch(args);
     }
-    //Klasa pomocnicza dla ResourceBundle, aby wymusić odczyt plików .properties w UTF-8.
-
-    private static class Utf8Control extends ResourceBundle.Control {
-        public ResourceBundle newBundle(String baseName, Locale locale, String format, ClassLoader loader, boolean reload)
-                throws IllegalAccessException, InstantiationException, IOException {
-            // Standardowa ścieżka do pliku .properties
-            String bundleName = toBundleName(baseName, locale);
-            String resourceName = toResourceName(bundleName, "properties");
-            ResourceBundle bundle = null;
-            InputStream stream = null;
-            if (reload) {
-                URL url = loader.getResource(resourceName);
-                if (url != null) {
-                    URLConnection connection = url.openConnection();
-                    if (connection != null) {
-                        connection.setUseCaches(false);
-                        stream = connection.getInputStream();
-                    }
-                }
-            } else {
-                stream = loader.getResourceAsStream(resourceName);
-            }
-            if (stream != null) {
-                try (java.io.InputStreamReader reader = new java.io.InputStreamReader(stream, StandardCharsets.UTF_8)) { // <--- Użycie UTF-8
-                    // Ładowanie properties z czytnika używającego UTF-8
-                    bundle = new PropertyResourceBundle(reader);
-                } finally {
-                    // Stream jest zamykany przez try-with-resources, jeśli pochodzi z getResourceAsStream
-                    // Jeśli pochodzi z url.openConnection().getInputStream(), też powinien być zamknięty przez try-with-resources
-                    // stream.close(); // Niepotrzebne w try-with-resources
-                }
-            }
-            return bundle;
-        }
-
-        }
-        // --- KONIEC KLASY POMOCNICZEJ ---
     }
